@@ -9,9 +9,64 @@
 			width: 28%;
 		}
 
+		#uploadArea {
+			width: calc(50% - 20px);
+			margin: 30px auto;
+			padding: 10px;
+			background-color: azure;
+			border-radius: 10px;
+			box-shadow: 5px 5px 5px lightblue;
+		}
+
+		button {
+			display: inline-block;
+			position: relative;
+			border: solid 2px skyblue;
+			outline: none;
+			background-color: transparent;
+			padding: 6px 12px;
+			border-radius: 8px;
+			font-size: 1.2em;
+			user-select: none;
+			transition: 120ms all;
+			color: midnightblue;
+		}
+
+		button:hover {
+			box-shadow: 0 0 3px skyblue inset;
+		}
+
+		button:active {
+			border-color: steelblue;
+			box-shadow: 0 0 10px skyblue inset;
+		}
+
+		#uploadedFiles {
+			display: block;
+			position: relative;
+			border: dashed 2px gray;
+			padding: 0 10px;
+			margin: 10px auto;
+			width: calc(80% - 20px);
+			border-radius: 5px;
+			transition: 200ms all ease;
+		}
+
+		#uploadedFiles:empty {
+			border: none;
+		}
+
 		@media (max-width: 812px) {
 			img {
 				width: 60%;
+			}
+
+			#uploadArea {
+				width: calc(100% - 20px);
+			}
+
+			#uploadedFiles {
+				width: calc(90% - 20px);
 			}
 		}
 	</style>
@@ -20,9 +75,61 @@
 	<section style="text-align: center;">
 		<h1 style="font-size: 2em;">SAMPLE HTTP SERVER</h1>
 		<p><img src="/nozomi.svg"></p>
-		<h2>listening on port: <span style="color: blue;">8080</span></h2>
+		<h2 style="text-decoration: underline;">listening on port: <span style="color: blue;">8080</span></h2>
 		<p>You can create any files in 'static' directory.</p>
 		<p>So example html, css, js, and image files.</p>
 	</section>
+	<section id="uploadArea">
+		<h2>You can upload any files on here.</h2>
+		<p>choose a file↓↓</p>
+		<form name="fm" onsubmit="execUpload(); return false;">
+			<p><input type="file" name="file" required></p>
+			<p style="text-align: center;"><button>UPLOAD NOW</button></p>
+		</form>
+		<div id="uploadedFiles"></div>
+	</section>
+	<script>
+		function execUpload() {
+			let data = new FormData(document.fm);
+			document.fm.file.setAttribute('disabled', '');
+			document.querySelector('button').setAttribute('disabled', '');
+			document.querySelector('button').innerText = "wait...";
+			fetch('/upload/', {
+				method: 'post',
+				body: data
+			}).then(res => {
+				if (res.status == 200)
+					return res.json();
+				return null;
+			})
+			.then(result => {
+				if (result == null) {
+					alert('Failed to upload.');
+				} else {
+					alert('Success!');
+					document.fm.file.value = "";
+					Array.from(result).forEach(filename => {
+						let p = document.createElement('p');
+						uploadedFiles.appendChild(p);
+
+						let a = document.createElement('a');
+						a.href = "/uploaded/" + filename;
+						a.setAttribute('target', '_blank');
+						a.innerText = filename;
+						p.appendChild(a);
+					});
+				}
+				document.fm.file.removeAttribute('disabled');
+				document.querySelector('button').removeAttribute('disabled');
+				document.querySelector('button').innerText = "UPLOAD NOW";
+			}).catch(err => {
+				console.log(err);
+				alert('Failed to upload.');
+				document.fm.file.removeAttribute('disabled');
+				document.querySelector('button').removeAttribute('disabled');
+				document.querySelector('button').innerText = "UPLOAD NOW";
+			});
+		}
+	</script>
 </body>
 </html>

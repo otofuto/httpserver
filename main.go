@@ -1,8 +1,12 @@
 package main
 
 import (
+	"os"
+	"io"
 	"log"
+	"fmt"
 	"net/http"
+	"encoding/json"
 	"github.com/gorilla/websocket"
 )
 
@@ -18,11 +22,54 @@ type SocketMessage struct {
 func main() {
 	http.Handle("/", http.StripPrefix("/", http.FileServer(http.Dir("./static"))))
 
+	http.HandleFunc("/upload/", UploadHandle)
+
 	http.HandleFunc("/ws/", SocketHandle)
 	go handleMessages()
 
 	log.Println("Listening on port: 8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+func UploadHandle(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		r.ParseMultipartForm(32 << 20)
+		savedFiles := make([]string, 0)
+		fileHeaders := r.MultipartForm.File["file"]
+		for _, fileHeader := range fileHeaders {
+			file, err := fileHeader.Open()
+			if err != nil {
+				log.Println("ファイル見つからない")
+				log.Println(err)
+				http.Error(w, "upload failed", 500)
+				return
+			}
+
+			save, err := os.Create("./static/uploaded/" + fileHeader.Filename)
+			if err != nil {
+				fmt.Println("ファイル確保失敗")
+				log.Println(err)
+				http.Error(w, "upload failed", 500)
+				return
+			}
+
+			defer save.Close()
+			defer file.Close()
+			_, err = io.Copy(save, file)
+			if err != nil {
+				log.Println("ファイル保存失敗")
+				log.Println(err)
+				http.Error(w, "upload failed", 500)
+				return
+			}
+			savedFiles = append(savedFiles, fileHeader.Filename)
+		}
+		bytes, _ := json.Marshal(savedFiles)
+		fmt.Fprintf(w, string(bytes))
+	} else {
+		w.Header().Set("Content-Type", "text/html")
+		http.Error(w, "このURLではPOSTメソッドのみに対応しています。", 405)
+	}
 }
 
 func SocketHandle(w http.ResponseWriter, r *http.Request) {
