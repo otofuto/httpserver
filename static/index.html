@@ -89,6 +89,8 @@
 		<div id="uploadedFiles"></div>
 	</section>
 	<script>
+		viewFiles();
+
 		function execUpload() {
 			let data = new FormData(document.fm);
 			document.fm.file.setAttribute('disabled', '');
@@ -108,16 +110,7 @@
 				} else {
 					alert('Success!');
 					document.fm.file.value = "";
-					Array.from(result).forEach(filename => {
-						let p = document.createElement('p');
-						uploadedFiles.appendChild(p);
-
-						let a = document.createElement('a');
-						a.href = "/uploaded/" + filename;
-						a.setAttribute('target', '_blank');
-						a.innerText = filename;
-						p.appendChild(a);
-					});
+					viewFiles();
 				}
 				document.fm.file.removeAttribute('disabled');
 				document.querySelector('button').removeAttribute('disabled');
@@ -128,6 +121,24 @@
 				document.fm.file.removeAttribute('disabled');
 				document.querySelector('button').removeAttribute('disabled');
 				document.querySelector('button').innerText = "UPLOAD NOW";
+			});
+		}
+
+		function viewFiles() {
+			fetch('/upload/')
+			.then(res => res.json())
+			.then(files => {
+				uploadedFiles.innerHTML = "";
+				Array.from(files).forEach(filename => {
+					let p = document.createElement('p');
+					uploadedFiles.appendChild(p);
+
+					let a = document.createElement('a');
+					a.href = "/uploaded/" + filename;
+					a.setAttribute('target', '_blank');
+					a.innerText = filename;
+					p.appendChild(a);
+				});
 			});
 		}
 	</script>

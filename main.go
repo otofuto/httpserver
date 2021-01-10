@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"io"
+	"io/ioutil"
 	"log"
 	"fmt"
 	"net/http"
@@ -33,6 +34,7 @@ func main() {
 
 func UploadHandle(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
+		w.Header().Set("Content-Type", "application/json")
 		r.ParseMultipartForm(32 << 20)
 		savedFiles := make([]string, 0)
 		fileHeaders := r.MultipartForm.File["file"]
@@ -66,9 +68,25 @@ func UploadHandle(w http.ResponseWriter, r *http.Request) {
 		}
 		bytes, _ := json.Marshal(savedFiles)
 		fmt.Fprintf(w, string(bytes))
+	} else if r.Method == http.MethodGet {
+		w.Header().Set("Content-Type", "application/json")
+		files, err := ioutil.ReadDir("./static/uploaded")
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "ファイル一覧の取得に失敗しました。", 500)
+			return
+		}
+		paths := make([]string, 0)
+		for _, file := range files {
+			if !file.IsDir() && file.Name() != ".gitkeep"{
+				paths = append(paths, file.Name())
+			}
+		}
+		bytes, _ := json.Marshal(paths)
+		fmt.Fprintf(w, string(bytes))
 	} else {
 		w.Header().Set("Content-Type", "text/html")
-		http.Error(w, "このURLではPOSTメソッドのみに対応しています。", 405)
+		http.Error(w, "このURLではPOSTメソッド、GETメソッドのみに対応しています。", 405)
 	}
 }
 
