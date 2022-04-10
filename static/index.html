@@ -56,6 +56,16 @@
 			border: none;
 		}
 
+		a[download] {
+			font-size: 6px;
+			background-color: cadetblue;
+			color: white;
+			padding: 2px 4px;
+			border-radius: 2px;
+			text-decoration: none;
+			margin-right: 3px;
+		}
+
 		@media (max-width: 812px) {
 			img {
 				width: 60%;
@@ -103,8 +113,7 @@
 				if (res.status == 200)
 					return res.json();
 				return null;
-			})
-			.then(result => {
+			}).then(result => {
 				if (result == null) {
 					alert('Failed to upload.');
 				} else {
@@ -132,6 +141,12 @@
 				Array.from(files).forEach(filename => {
 					let p = document.createElement('p');
 					uploadedFiles.appendChild(p);
+
+					let dl = document.createElement('a');
+					dl.href = "/uploaded/" + filename;
+					dl.setAttribute('download', filename);
+					dl.innerText = 'download';
+					p.appendChild(dl);
 
 					let a = document.createElement('a');
 					a.href = "/uploaded/" + filename;
