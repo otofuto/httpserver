@@ -4,12 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"httpserver/pkg/account"
+	"httpserver/pkg/database"
 	"httpserver/pkg/util"
 	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"text/template"
 
@@ -270,6 +272,43 @@ func ApiHandle(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, mode)
 	} else if r.Method == http.MethodPost {
 		r.ParseMultipartForm(32 << 20)
+		if mode == "login" {
+			db := database.Connect()
+			defer db.Close()
+			_, err := account.Login(r.FormValue("id"), r.FormValue("password"), db)
+			if err != nil {
+				util.Log()
+				log.Println(err)
+				if strings.HasPrefix(err.Error(), ".") {
+					ApiResponse(w, 400, err.Error()[1:])
+				} else {
+					ApiResponse(w, 400, "")
+				}
+				return
+			}
+			ApiResponse(w, 200, "")
+			return
+		} else if mode == "account" {
+			dn := strings.TrimSpace(r.FormValue("display_name"))
+			if dn == "" {
+				ApiResponse(w, 400, "")
+				return
+			}
+			pass := strings.TrimSpace(r.FormValue("password"))
+			auth := strings.TrimSpace(r.FormValue("auth"))
+			memo := strings.TrimSpace(r.FormValue("memo"))
+			db := database.Connect()
+			defer db.Close()
+			ac, err := account.Make(dn, pass, auth, memo, db)
+			if err != nil {
+				util.Log()
+				log.Println(err)
+				ApiResponse(w, 500, err.Error())
+				return
+			}
+			ApiResponse(w, 200, strconv.Itoa(ac.Id))
+			return
+		}
 		fmt.Fprintf(w, mode)
 	} else if r.Method == http.MethodPut {
 		r.ParseMultipartForm(32 << 20)

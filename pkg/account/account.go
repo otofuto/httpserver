@@ -25,22 +25,22 @@ func Make(dn, pass, auth, memo string, db *sql.DB) (Account, error) {
 	q := "insert into account (display_name, pass, auth, memo) values (?, ?, ?, ?)"
 	ins, err := db.Prepare(q)
 	if err != nil {
-		log.Println("account.go Make() db.Prepare()")
+		util.Log()
 		return Account{}, err
 	}
 	result, err := ins.Exec(dn, util.PassHash(pass), auth, memo)
 	if err != nil {
-		log.Println("account.go Make() ins.Exec()")
+		util.Log()
 		return Account{}, err
 	}
 	newid, err := result.LastInsertId()
 	if err != nil {
-		log.Println("account.go Make() result.LastInsertId()")
+		util.Log()
 		return Account{}, err
 	}
 	ac, err := GetById(int(newid), db)
 	if err != nil {
-		log.Println("account.go Make() GetById()")
+		util.Log()
 		return ac, err
 	}
 	return ac, nil
@@ -54,7 +54,7 @@ func Edit(targetid int, dn, pass, auth string, memo string, db *sql.DB) (Account
 	q := "update account set display_name = '" + database.Escape(dn) + "', auth = '" + database.Escape(auth) + "', memo = '" + database.Escape(memo) + "'" + pass_set + " where id = " + strconv.Itoa(targetid)
 	del, err := db.Query(q)
 	if err != nil {
-		log.Println("account.go Edit() db.Query()")
+		util.Log()
 		return Account{}, err
 	}
 	del.Close()
@@ -70,7 +70,7 @@ func Delete(id int, db *sql.DB) error {
 	q := "update account set deleted = 1 where id = " + strconv.Itoa(id)
 	del, err := db.Query(q)
 	if err != nil {
-		log.Println("account.go Dlete() db.Query()")
+		util.Log()
 		return err
 	}
 	del.Close()
@@ -85,7 +85,7 @@ func CheckToken(tkn string) Account {
 	q := "select id, display_name, auth, account.created_at from login_token left outer join account on account_id = id where deleted = 0 and token = '" + database.Escape(tkn) + "'"
 	rows, err := db.Query(q)
 	if err != nil {
-		log.Println("account.CheckToken() db.Query()")
+		util.Log()
 		log.Println(err)
 		return ret
 	}
@@ -93,7 +93,7 @@ func CheckToken(tkn string) Account {
 	if rows.Next() {
 		err = rows.Scan(&ret.Id, &ret.DisplayName, &ret.Auth, &ret.CreatedAt)
 		if err != nil {
-			log.Println("account.CheckToken() rows.Scan()")
+			util.Log()
 			log.Println(err)
 			return ret
 		}
@@ -107,7 +107,7 @@ func Login(id, pass string, db *sql.DB) (Account, error) {
 	q := "select id, display_name, auth, pass, deleted from account where id = '" + database.Escape(id) + "'"
 	rows, err := db.Query(q)
 	if err != nil {
-		log.Println("account.go Login() db.Query()")
+		util.Log()
 		return ac, err
 	}
 	defer rows.Close()
@@ -116,7 +116,7 @@ func Login(id, pass string, db *sql.DB) (Account, error) {
 	}
 	err = rows.Scan(&ac.Id, &ac.DisplayName, &ac.Auth, &ac.Pass, &ac.Deleted)
 	if err != nil {
-		log.Println("account.go Login() rows.Scan()")
+		util.Log()
 		return ac, err
 	}
 	if util.CheckPass(ac.Pass, pass) {
@@ -135,7 +135,7 @@ func Logout(tkn string) error {
 	q := "delete from login_token where token = '" + database.Escape(tkn) + "'"
 	d, err := db.Query(q)
 	if err != nil {
-		log.Println("account.Logout() db.Query()")
+		util.Log()
 		return err
 	}
 	defer d.Close()
@@ -146,7 +146,7 @@ func (a *Account) Login(db *sql.DB, tkn string) error {
 	q := "insert into login_token (account_id, token) values (?, ?)"
 	ins, err := db.Prepare(q)
 	if err != nil {
-		log.Println("account.Login() db.Prepare()")
+		util.Log()
 		return err
 	}
 	defer ins.Close()
@@ -158,7 +158,7 @@ func (a *Account) Login(db *sql.DB, tkn string) error {
 
 	r, err := db.Query("delete from `login_token` where `created_at` <= subtime(now(), '3:00:00')")
 	if err != nil {
-		log.Println("account.Login() db.Query()")
+		util.Log()
 		log.Println(err)
 		return nil
 	}
@@ -171,7 +171,7 @@ func List(memo bool, db *sql.DB) ([]Account, error) {
 	q := "select account.id, display_name, auth, memo, created_at from account where deleted = 0 order by account.id"
 	rows, err := db.Query(q)
 	if err != nil {
-		log.Println("account.go List() db.Query()")
+		util.Log()
 		return ret, err
 	}
 	defer rows.Close()
@@ -179,7 +179,7 @@ func List(memo bool, db *sql.DB) ([]Account, error) {
 		var a Account
 		err = rows.Scan(&a.Id, &a.DisplayName, &a.Auth, &a.Memo, &a.CreatedAt)
 		if err != nil {
-			log.Println("account.go List() rows.Scan()")
+			util.Log()
 			return ret, err
 		}
 		json.Unmarshal([]byte(a.Auth), &a.AuthName)
@@ -195,7 +195,7 @@ func GetById(id int, db *sql.DB) (Account, error) {
 	q := "select account.id, display_name, auth, memo, created_at from account where account.id = " + strconv.Itoa(id)
 	rows, err := db.Query(q)
 	if err != nil {
-		log.Println("account.go GetById() db.Query()")
+		util.Log()
 		return Account{}, err
 	}
 	defer rows.Close()
@@ -203,7 +203,7 @@ func GetById(id int, db *sql.DB) (Account, error) {
 		var ac Account
 		err = rows.Scan(&ac.Id, &ac.DisplayName, &ac.Auth, &ac.Memo, &ac.CreatedAt)
 		if err != nil {
-			log.Println("account.go GetById() rows.Scan()")
+			util.Log()
 			return Account{}, err
 		}
 		json.Unmarshal([]byte(ac.Auth), &ac.AuthName)

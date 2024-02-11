@@ -6,38 +6,110 @@ window.onresize = () => setHeight();
 
 onload = () => {
     document.querySelectorAll('[data-ot-get]').forEach(elm => {
-        get(elm.getAttribute('data-ot-get')).then(res => {
-            if (res.result) {
-                if (res.message) {
-                    elm.innerText = res.message;
-                } else if (res.html) {
-                    elm.innerHTML = res.html;
-                } else if (Array.isArray(res.list)) {
-                    let sample = null;
-                    if (elm.children.length > 0) {
-                        sample = elm.children[0];
-                    }
-                    res.list.forEach(l => {
-                        let art = sample.cloneNode(true);
-                        for (let i = 0; i < Object.keys(l).length; i++) {
-                            art.querySelectorAll('[data-ot-' + Object.keys(l)[i] + ']').forEach(target => {
-                                target.innerText = l[Object.keys(l)[i]];
-                            });
-                        }
-                    });
-                }
-            } else {
-                elm.innerHTML = res.message;
-            }
-        }).catch(err => {
-            console.error(err);
-            elm.innerHTML = err;
-        }).finally(() => {
-            if (typeof getend == 'function') {
-                getend(elm.getAttribute('data-ot-get'));
-            }
-        });
+        execGet(elm);
     });
+    document.querySelectorAll('form[data-ot-post]').forEach(elm => {
+        elm.onsubmit = () => {
+            let acts = elm.getAttribute('data-ot-post').split(',');
+            if (acts[0] != '') {
+                let data = new FormData(elm);
+                formDisabled(elm, true);
+                post(acts[0], data).then(res => {
+                    if (res.result) {
+                        if (acts.length > 0) {
+                            viewMessage(acts[1]);
+                        } else {
+                            viewMessage('成功しました');
+                        }
+                    } else if (res.message && res.message != '') {
+                        viewMessage(res.message);
+                    } else {
+                        viewMessage('失敗しました');
+                    }
+                }).catch(err => {
+                    console.error(err);
+                    elm.innerHTML = err;
+                }).finally(() => {
+                    formDisabled(elm, false);
+                    if (typeof getend == 'function') {
+                        getend(elm.getAttribute('data-ot-post'));
+                    }
+                });
+            }
+            return false;
+        }
+    });
+};
+
+function execGet(elm, custom, getend) {
+    get(elm.getAttribute('data-ot-get')).then(res => {
+        if (res.result) {
+            if (res.message) {
+                setText(elm, res.message);
+            } else if (res.html) {
+                elm.innerHTML = res.html;
+            } else if (Array.isArray(res.list)) {
+                let sample = null;
+                if (elm.children.length > 0) {
+                    sample = elm.children[0];
+                    sample.removeAttribute('class');
+                    sample.removeAttribute('style');
+                } else {
+                    sample = document.createElement('div');
+                }
+                res.list.forEach(l => {
+                    let art = sample.cloneNode(true);
+                    for (let i = 0; i < Object.keys(l).length; i++) {
+                        art.querySelectorAll('[data-ot-' + Object.keys(l)[i] + ']').forEach(target => {
+                            let intext = l[Object.keys(l)[i]];
+                            if (typeof custom == 'function') {
+                                intext = custom(Object.keys(l)[i], intext, target);
+                                if (intext == undefined) intext = l[Object.keys(l)[i]];
+                            }
+                            setText(target, intext);
+                        });
+                        elm.appendChild(art);
+                    }
+                });
+                sample.setAttribute('class', 'ot-sample');
+                sample.style.display = 'none';
+            } else {
+                elm.innerText += 'Success';
+            }
+        } else {
+            elm.innerHTML = res.message;
+        }
+    }).catch(err => {
+        console.error(err);
+        elm.innerHTML = err;
+    }).finally(() => {
+        if (typeof getend == 'function') {
+            getend(elm.getAttribute('data-ot-get'));
+        }
+    });
+}
+
+function setText(target, text) {
+    let tagname = target.tagName.toLowerCase();
+    if (tagname == 'input' || tagname == 'select' || tagname == 'textarea') {
+        target.value = text;
+    } else {
+        target.innerText = text;
+    }
+}
+
+function otClear(target) {
+    if (target.querySelector('[ot-sample]')) {
+        let sample = target.querySelector('[ot-sample]').cloneNode(true);
+        target.innerHTML = '';
+        target.appendChild(sample);
+    } else if (target.children.length > 0) {
+        let sample = target.children[0];
+        target.innerHTML = '';
+        target.appendChild(sample);
+    } else {
+        target.innerHTML = '';
+    }
 }
 
 function viewMessage(str, f) {

@@ -12,6 +12,7 @@ import (
 	"net/smtp"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 	"time"
 
@@ -277,4 +278,9 @@ func WebHookHandle(w http.ResponseWriter, r *http.Request) {
 	} else {
 		http.Error(w, "method not allowed", 405)
 	}
+}
+
+func Log() {
+	pc, pwd, line, _ := runtime.Caller(1)
+	log.Println(pwd[strings.Index(pwd, os.Getenv("PROJECT")+"/")+len(os.Getenv("PROJECT")):], line, runtime.FuncForPC(pc).Name())
 }

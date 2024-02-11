@@ -1,0 +1,28 @@
+
+.messagebox {
+    display: block;
+    position: fixed;
+    width: 100vw;
+    height: var(--vh);
+    padding-top: 80px;
+    box-sizing: border-box;
+    top: 0;
+    left: 0;
+    background-color: #0003;
+    z-index: 205;
+}
+
+.messagebox>div {
+    display: block;
+    position: relative;
+    width: max-content;
+    max-width: 80%;
+    height: max-content;
+    margin: 5px auto;
+    background-color: white;
+    border-radius: 10px;
+    padding: 10px;
+    box-sizing: border-box;
+    color: black;
+    box-shadow: 0 0 20px -10px black;
+}
